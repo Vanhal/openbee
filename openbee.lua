@@ -32,7 +32,8 @@ if config == nil then
     },
 	["warningColor"] = colors.orange,
 	["targetColor"] = colors.green,
-	["detailedOutput"] = true
+	["detailedOutput"] = true,
+	["monitor"] = nil
   }
   saveFile("bee.config", config)
 end
@@ -119,6 +120,7 @@ function logLineColor(txtColor, bkgdColor, ...)
 		term.setTextColor(colors.black)
 	else
 		logLine(...)
+	end
 end
 
 function getPeripherals()
@@ -518,7 +520,7 @@ function catalogBees(inv, scorers)
         analyzeCount = analyzeCount + 1
       end
     end
-    logLine(string.format("analyzed %d new bees", analyzeCount))
+    logLineColor(targetColor, colors.black, string.format("analyzed %d new bees", analyzeCount))
   end
   -- phase 1 -- mark reference bees
   inv.condenseItems()
@@ -790,9 +792,11 @@ function selectPair(mutations, scorers, catalog, targetSpecies)
     table.sort(mates, compareMates)
     for i = math.min(#mates, 10), 1, -1 do
       local parents = mates[i]
-      logLine(beeName(parents.princess), " ", beeName(parents.drone), " ", parents.speciesChance, " ", parents.fertility, " ",
-            parents.flowering, " ", parents.nocturnal, " ", parents.tolerantFlyer, " ", parents.caveDwelling, " ",
-            parents.lifespan, " ", parents.temperatureTolerance, " ", parents.humidityTolerance)
+	  if(config.detailedOutput) then
+		  logLine(beeName(parents.princess), " ", beeName(parents.drone), " ", parents.speciesChance, " ", parents.fertility, " ",
+				parents.flowering, " ", parents.nocturnal, " ", parents.tolerantFlyer, " ", parents.caveDwelling, " ",
+				parents.lifespan, " ", parents.temperatureTolerance, " ", parents.humidityTolerance)
+		end
     end
     return mates[1]
   else
@@ -932,6 +936,10 @@ function main(tArgs)
 end
 
 local logFileName = setupLog()
+if config.monitor ~= nil then
+	local monitor = peripheral.wrap(config.monitor)
+	term.redirect(monitor)
+end
 local status, err = pcall(main, {...})
 if not status then
   logLine(err)
