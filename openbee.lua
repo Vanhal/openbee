@@ -51,8 +51,11 @@ if config == nil then
 else
 	config.warningColor = config.warningColor or colors.orange
 	config.targetColor = config.targetColor or colors.green
-	config.detailedOutput = config.detailedOutput or true
 	config.monitor = config.monitor or nil
+	
+	if config.detailedOutput == nil then
+	  config.detailedOutput = true
+	end
 end
 
 local useAnalyzer = true
@@ -108,19 +111,12 @@ function setupLog()
   return string.format("bee.%d.log", logCount)
 end
 
-function log(msg)
-  msg = msg or ""
-  logFile.write(tostring(msg))
-  logFile.flush()
-  io.write(msg)
-end
-
 function log(msg, txtColor, bkgdColor)
   msg = msg or ""
   logFile.write(tostring(msg))
   logFile.flush()
   
-  if term.isColor()
+  if term.isColor() then
 	  txtColor = txtColor or defaultText
 	  bkgdColor = bkgdColor or defaultBack
 	  term.setTextColor(txtColor)
@@ -131,6 +127,7 @@ function log(msg, txtColor, bkgdColor)
   else
     io.write(msg)
   end
+end
 
 function logLine(toConsole, ...)
   for i, msg in ipairs(arg) do
@@ -563,7 +560,7 @@ function catalogBees(inv, scorers)
       end
     end
 	log("Analyzed ")
-	log("%d", config.targetColor)
+	log(string.format("%d", analyzeCount), config.targetColor)
 	log(" new bees. \n")
   end
   -- phase 1 -- mark reference bees
@@ -822,6 +819,8 @@ end
 -- selects best pair for target species
 --   or initiates breeding of lower species
 function selectPair(mutations, scorers, catalog, targetSpecies)
+  log("Targeting ")
+  log(string.format("%s\n", targetSpecies), config.targetColor))
   logLineColor(config.targetColor, defaultBack, alwaysShow, "Targeting "..targetSpecies)
   local baseChance = 0
   if #mutations.getBeeParents(targetSpecies) > 0 then
@@ -872,7 +871,7 @@ function selectPair(mutations, scorers, catalog, targetSpecies)
     -- attempt lower tier bee
     local parentss = mutations.getBeeParents(targetSpecies)
     if #parentss > 0 then
-      logLine(alwaysShow, "Mutation not possible with current bees, trying next lower tier.")
+      logLine(alwaysShow, "Mutation impossible, trying next lower tier.")
       --print(textutils.serialize(catalog.referencePrincessesBySpecies))
       table.sort(parentss, function(a, b) return a.chance > b.chance end)
       local trySpecies = {}
@@ -964,6 +963,12 @@ end
 function main(tArgs)
   logLine(alwaysShow, string.format("openbee version %d.%d.%d", version.major, version.minor, version.patch))
   local targetSpecies = setPriorities(tArgs)
+  if targetSpecies ~= nil then
+    log("Given target species: ")
+	log(string.format("%s\n", targetSpecies), config.targetColor)
+  else
+    logLine(alwaysShow, "No target given, starting general breeding.")
+  end
   if detailedOutput then
 	log("priority:")
 	for _, priority in ipairs(traitPriority) do
