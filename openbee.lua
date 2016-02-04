@@ -820,8 +820,7 @@ end
 --   or initiates breeding of lower species
 function selectPair(mutations, scorers, catalog, targetSpecies)
   log("Targeting ")
-  log(string.format("%s\n", targetSpecies), config.targetColor))
-  logLineColor(config.targetColor, defaultBack, alwaysShow, "Targeting "..targetSpecies)
+  log(string.format("%s\n", targetSpecies), config.targetColor)
   local baseChance = 0
   if #mutations.getBeeParents(targetSpecies) > 0 then
     local parents = mutations.getBeeParents(targetSpecies)[1]
@@ -961,7 +960,7 @@ function breedAllSpecies(mutations, inv, apiary, scorers, speciesList)
 end
 
 function main(tArgs)
-  logLine(alwaysShow, string.format("openbee version %d.%d.%d", version.major, version.minor, version.patch))
+  logLine(alwaysShow, string.format("openbee v%d.%d.%d", version.major, version.minor, version.patch))
   local targetSpecies = setPriorities(tArgs)
   if targetSpecies ~= nil then
     log("Given target species: ")
