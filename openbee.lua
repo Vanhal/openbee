@@ -29,7 +29,10 @@ if config == nil then
     ["analyzerDir"] = "east",
     ["ignoreSpecies"] = {
       "Leporine"
-    }
+    },
+	["warningColor"] = colors.orange,
+	["targetColor"] = colors.green,
+	["detailedOutput"] = true
   }
   saveFile("bee.config", config)
 end
@@ -105,6 +108,17 @@ function logLine(...)
   logFile.write("\n")
   logFile.flush()
   io.write("\n")
+end
+
+function logLineColor(txtColor, bkgdColor, ...)
+	if term.isColor() then
+		term.setTextColor(txtColor)
+		term.setBackgroundColor(bkgdColor)
+		logLine(...)
+		term.setTextColor(colors.white)
+		term.setTextColor(colors.black)
+	else
+		logLine(...)
 end
 
 function getPeripherals()
