@@ -1,8 +1,18 @@
 local version = {
   ["major"] = 2,
-  ["minor"] = 2,
-  ["patch"] = 1
+  ["minor"] = 3,
+  ["patch"] = 0
 }
+
+-- for logLine function calls to improve readability
+local alwaysShow = true
+-- how often should it output dots after waiting on apiary
+-- default is every 5th check
+local logSkip = 5
+
+-- default colors
+local defaultText = colors.yellow
+local defaultBack = colors.brown
 
 function loadFile(fileName)
   local f = fs.open(fileName, "r")
@@ -29,9 +39,23 @@ if config == nil then
     ["analyzerDir"] = "east",
     ["ignoreSpecies"] = {
       "Leporine"
-    }
+    },
+	["warningColor"] = colors.orange,
+	["targetColor"] = colors.green,
+	["detailedOutput"] = true,
+	["monitor"] = nil
   }
   saveFile("bee.config", config)
+  
+-- backward compatibility with old config files: assume defaults for new configs
+else
+	config.warningColor = config.warningColor or colors.orange
+	config.targetColor = config.targetColor or colors.green
+	config.monitor = config.monitor or nil
+	
+	if config.detailedOutput == nil then
+	  config.detailedOutput = true
+	end
 end
 
 local useAnalyzer = true
@@ -87,24 +111,51 @@ function setupLog()
   return string.format("bee.%d.log", logCount)
 end
 
-function log(msg)
+function log(msg, txtColor, bkgdColor)
   msg = msg or ""
   logFile.write(tostring(msg))
   logFile.flush()
-  io.write(msg)
+  
+  if term.isColor() then
+	  txtColor = txtColor or defaultText
+	  bkgdColor = bkgdColor or defaultBack
+	  term.setTextColor(txtColor)
+	  term.setBackgroundColor(bkgdColor)
+	  io.write(msg)
+	  term.setTextColor(defaultText)
+	  term.setBackgroundColor(defaultBack)
+  else
+    io.write(msg)
+  end
 end
 
-function logLine(...)
+function logLine(toConsole, ...)
   for i, msg in ipairs(arg) do
     if msg == nil then
       msg = ""
     end
     logFile.write(msg)
-    io.write(msg)
+	if toConsole then
+	  io.write(msg)
+	end
   end
   logFile.write("\n")
   logFile.flush()
-  io.write("\n")
+  if toConsole then
+    io.write("\n")
+  end
+end
+
+function logLineColor(txtColor, bkgdColor, ...)
+	if term.isColor() then
+		term.setTextColor(txtColor)
+		term.setBackgroundColor(bkgdColor)
+		logLine(...)
+		term.setTextColor(defaultText)
+		term.setBackgroundColor(defaultBack)
+	else
+		logLine(...)
+	end
 end
 
 function getPeripherals()
@@ -119,7 +170,7 @@ function getPeripherals()
   end
   -- check config directions
   if not pcall(function () chestPeripheral.pullItem(config.analyzerDir, 9) end) then
-    logLine("Analyzer direction incorrect.  Direction should be relative to bee chest.")
+    logLine(alwaysShow, "Analyzer direction incorrect.  Direction should be relative to bee chest.")
     useAnalyzer = false
   end
   return chestPeripheral, apiaryPeripheral
@@ -224,7 +275,7 @@ function printBee(bee)
     --log((active.nocturnal and " Nocturnal" or " "))
     --log((active.tolerantFlyer and " Flyer" or " "))
     --log((active.caveDwelling and " Cave" or " "))
-    logLine()
+    logLine(alwaysShow)
     --logLine(string.format("Fert: %d  Speed: %d  Lifespan: %d", active.fertility, active.speed, active.lifespan))
   else
   end
@@ -492,7 +543,11 @@ function catalogBees(inv, scorers)
 
   -- phase 0 -- analyze bees and ditch product
   inv.condenseItems()
-  logLine(string.format("scanning %d slots", inv.size))
+  if detailedOutput then
+    logLine(alwaysShow, string.format("Scanning %d slots for new bees.", inv.size))
+  else
+    logLine(alwaysShow, "Scanning bee chest for changes & analyzing new bees.")
+  end
   if useAnalyzer == true then
     local analyzeCount = 0
     local bees = getAllBees(inv)
@@ -504,7 +559,9 @@ function catalogBees(inv, scorers)
         analyzeCount = analyzeCount + 1
       end
     end
-    logLine(string.format("analyzed %d new bees", analyzeCount))
+	log("Analyzed ")
+	log(string.format("%d", analyzeCount), config.targetColor)
+	log(" new bees. \n")
   end
   -- phase 1 -- mark reference bees
   inv.condenseItems()
@@ -555,13 +612,15 @@ function catalogBees(inv, scorers)
         end
       end
     end
-    logLine(string.format("found %d reference bees, %d princesses, %d drones", referenceBeeCount, referencePrincessCount, referenceDroneCount))
-    log("reference pairs")
-    for species, _ in pairs(catalog.referencePairBySpecies) do
-      log(", ")
-      log(species)
-    end
-    logLine()
+    logLine(config.detailedOutput, string.format("Found %d reference bees, %d princesses, %d drones", referenceBeeCount, referencePrincessCount, referenceDroneCount))
+    if config.detailedOutput then
+		log("reference pairs")
+		for species, _ in pairs(catalog.referencePairBySpecies) do
+		  log(", ")
+		  log(species)
+		end
+		logLine(alwaysShow)
+	end
   end
   -- phase 2 -- ditch obsolete drones
   bees = getAllBees(inv)
@@ -615,7 +674,7 @@ function catalogBees(inv, scorers)
         -- ditch drone
         if bee ~= nil then
           if inv.pushItem(config.chestDir, bee.slot) == 0 then
-            error("ditch chest is full")
+            error("Ditch chest is full")
           end
         end
       end
@@ -643,7 +702,7 @@ function catalogBees(inv, scorers)
       end
     end
   end
-  logLine(string.format("found %d queens, %d princesses, %d drones",
+  logLine(config.detailedOutput, string.format("Found %d queens, %d princesses, %d drones",
       #catalog.queens, #catalog.princesses, #catalog.drones))
   return catalog
 end
@@ -652,20 +711,31 @@ end
 
 function clearApiary(inv, apiary)
   local bees = getAllBees(apiary)
+  local counter = 0
   -- wait for queen to die
   if (bees[1] ~= nil and bees[1].raw_name == "item.for.beequeenge")
       or (bees[1] ~= nil and bees[2] ~= nil) then
-    log("waiting for apiary")
+    log("Waiting for apiary")
     while true do
       sleep(5)
       bees = getAllBees(apiary)
       if bees[1] == nil then
         break
       end
-      log(".")
+	  
+	  -- if detailed, log every check. Otherwise, log every logSkipth
+	  if config.detailedOutput then
+		log(".")
+	  else
+	    counter = counter + 1
+	    if counter % logSkip == logSkip - 1 then
+		  log(".")
+		end
+	  end
     end
+    logLine(alwaysShow, "Done!")
   end
-  logLine()
+
   for slot = 3, 9 do
     local bee = bees[slot]
     if bee ~= nil then
@@ -695,9 +765,11 @@ end
 
 function analyzeBee(inv, slot)
   clearAnalyzer(inv)
-  log("analyzing bee ")
-  log(slot)
-  log("...")
+  if config.detailedOutput then
+	  log("Analyzing bee ")
+	  log(slot)
+	  log("...")
+  end
   local freeSlot
   if inv.pushItem(config.analyzerDir, slot, 64, 3) > 0 then
     while true do
@@ -716,13 +788,15 @@ function analyzeBee(inv, slot)
       sleep(1)
     end
   else
-    logLine("Missing Analyzer")
+    logLine(alwaysShow, "Missing Analyzer")
     useAnalyzer = false
     return nil
   end
+  if detailedOutput then
   local bee = getBeeInSlot(inv, freeSlot)
-  if bee ~= nil then
-    printBee(fixBee(bee))
+	  if bee ~= nil then
+		printBee(fixBee(bee))
+	  end
   end
   return freeSlot
 end
@@ -734,8 +808,9 @@ function breedBees(inv, apiary, princess, drone)
   clearApiary(inv, apiary)
 end
 
+-- Breeds any queens left in the bee chest
 function breedQueen(inv, apiary, queen)
-  log("breeding queen")
+  log("Queen found in chest, sending her to apiary.")
   clearApiary(inv, apiary)
   apiary.pullItem(config.chestDir, queen.slot, 1, 1)
   clearApiary(inv, apiary)
@@ -744,13 +819,14 @@ end
 -- selects best pair for target species
 --   or initiates breeding of lower species
 function selectPair(mutations, scorers, catalog, targetSpecies)
-  logLine("targetting "..targetSpecies)
+  log("Targeting ")
+  log(string.format("%s\n", targetSpecies), config.targetColor)
   local baseChance = 0
   if #mutations.getBeeParents(targetSpecies) > 0 then
     local parents = mutations.getBeeParents(targetSpecies)[1]
     baseChance = parents.chance
     for _, s in ipairs(parents.specialConditions) do
-      logLine("    ", s)
+      logLine(alwaysShow, "    ", s)
     end
   end
   local mateCombos = choose(catalog.princesses, catalog.drones)
@@ -776,16 +852,16 @@ function selectPair(mutations, scorers, catalog, targetSpecies)
     table.sort(mates, compareMates)
     for i = math.min(#mates, 10), 1, -1 do
       local parents = mates[i]
-      logLine(beeName(parents.princess), " ", beeName(parents.drone), " ", parents.speciesChance, " ", parents.fertility, " ",
-            parents.flowering, " ", parents.nocturnal, " ", parents.tolerantFlyer, " ", parents.caveDwelling, " ",
-            parents.lifespan, " ", parents.temperatureTolerance, " ", parents.humidityTolerance)
+	  logLine(config.detailedOutput, beeName(parents.princess), " ", beeName(parents.drone), " ", parents.speciesChance, " ", parents.fertility, " ",
+			parents.flowering, " ", parents.nocturnal, " ", parents.tolerantFlyer, " ", parents.caveDwelling, " ",
+			parents.lifespan, " ", parents.temperatureTolerance, " ", parents.humidityTolerance)
     end
     return mates[1]
   else
     -- check for reference bees and breed if drone count is 1
     if catalog.referencePrincessesBySpecies[targetSpecies] ~= nil and
         catalog.referenceDronesBySpecies[targetSpecies] ~= nil then
-      logLine("Breeding extra drone from reference bees")
+      logLine(alwaysShow, "Breeding extra drone from reference bees")
       return {
         ["princess"] = catalog.referencePrincessesBySpecies[targetSpecies],
         ["drone"] = catalog.referenceDronesBySpecies[targetSpecies]
@@ -794,7 +870,7 @@ function selectPair(mutations, scorers, catalog, targetSpecies)
     -- attempt lower tier bee
     local parentss = mutations.getBeeParents(targetSpecies)
     if #parentss > 0 then
-      logLine("lower tier")
+      logLine(alwaysShow, "Mutation impossible, trying next lower tier.")
       --print(textutils.serialize(catalog.referencePrincessesBySpecies))
       table.sort(parentss, function(a, b) return a.chance > b.chance end)
       local trySpecies = {}
@@ -846,11 +922,11 @@ function breedTargetSpecies(mutations, inv, apiary, scorers, targetSpecies)
   local catalog = catalogBees(inv, scorers)
   while true do
     if #catalog.princesses == 0 then
-      log("Please add more princesses and press [Enter]")
+      logLineColor(config.warningColor, defaultBack, alwaysShow, "Please add more princesses and press [Enter]")
       io.read("*l")
       catalog = catalogBees(inv, scorers)
     elseif #catalog.drones == 0 and next(catalog.referenceDronesBySpecies) == nil then
-      log("Please add more drones and press [Enter]")
+      logLineColor(config.warningColor, defaultBack, alwaysShow, "Please add more drones and press [Enter]")
       io.read("*l")
       catalog = catalogBees(inv, scorers)
     else
@@ -863,18 +939,18 @@ function breedTargetSpecies(mutations, inv, apiary, scorers, targetSpecies)
           catalog = catalogBees(inv, scorers)
         end
       else
-        log(string.format("Please add more bee species for %s and press [Enter]"), targetSpecies)
+        logLineColor(config.warningColor, defaultBack, alwaysShow, string.format("Please add more bee species for %s and press [Enter]"), targetSpecies)
         io.read("*l")
         catalog = catalogBees(inv, scorers)
       end
     end
   end
-  logLine("Bees are purebred")
+  logLine(alwaysShow, "Bees are purebred")
 end
 
 function breedAllSpecies(mutations, inv, apiary, scorers, speciesList)
   if #speciesList == 0 then
-    log("Please add more bee species and press [Enter]")
+    logLineColor(config.warningColor, defaultBack, alwaysShow,"Please add more bee species and press [Enter]")
     io.read("*l")
   else
     for i, targetSpecies in ipairs(speciesList) do
@@ -884,13 +960,21 @@ function breedAllSpecies(mutations, inv, apiary, scorers, speciesList)
 end
 
 function main(tArgs)
-  logLine(string.format("openbee version %d.%d.%d", version.major, version.minor, version.patch))
+  logLine(alwaysShow, string.format("openbee v%d.%d.%d", version.major, version.minor, version.patch))
   local targetSpecies = setPriorities(tArgs)
-  log("priority:")
-  for _, priority in ipairs(traitPriority) do
-    log(" "..priority)
+  if targetSpecies ~= nil then
+    log("Given target species: ")
+	log(string.format("%s\n", targetSpecies), config.targetColor)
+  else
+    logLine(alwaysShow, "No target given, starting general breeding.")
   end
-  logLine("")
+  if detailedOutput then
+	log("priority:")
+	for _, priority in ipairs(traitPriority) do
+		log(" "..priority)
+	end
+  end
+  logLine(alwaysShow, "")
   local inv, apiary = getPeripherals()
   inv.size = inv.getInventorySize()
   local mutations, beeNames = buildMutationGraph(apiary)
@@ -907,7 +991,7 @@ function main(tArgs)
     if beeNames[targetSpecies] == true then
       breedTargetSpecies(mutations, inv, apiary, scorers, targetSpecies)
     else
-      logLine(string.format("Species '%s' not found.", targetSpecies))
+      logLineColor(config.warningColor, defaultBack, alwaysShow, string.format("Species '%s' not found.", targetSpecies))
     end
   else
     while true do
@@ -918,8 +1002,15 @@ function main(tArgs)
 end
 
 local logFileName = setupLog()
+if config.monitor ~= nil then
+	local monitor = peripheral.wrap(config.monitor)
+	term.redirect(monitor)
+end
+term.setTextColor(defaultText)
+term.setBackgroundColor(defaultBack)
+term.clear()
 local status, err = pcall(main, {...})
 if not status then
-  logLine(err)
+  logLine(alwaysShow, err)
 end
 print("Log file is "..logFileName)
