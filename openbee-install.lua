@@ -10,15 +10,15 @@ local branch = "master"
 local files = {
   {
     name = "openbee-install",
-    url = "https://raw.github.com/HoldenMatheson/openbee/"..branch.."/openbee-install.lua"
+    url = "https://raw.github.com/Casper-O/openbee/"..branch.."/openbee-install.lua"
   },
   {
     name = "openbee",
-    url = "https://raw.github.com/HoldenMatheson/openbee/"..branch.."/openbee.lua"
+    url = "https://raw.github.com/Casper-O/openbee/"..branch.."/openbee.lua"
   },
   {
     name = "matron",
-    url = "https://raw.github.com/HoldenMatheson/openbee/"..branch.."/matron.lua"
+    url = "https://raw.github.com/Casper-O/openbee/"..branch.."/matron.lua"
   }
 }
 
