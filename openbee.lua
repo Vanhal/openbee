@@ -736,7 +736,7 @@ function clearApiary(inv, apiary)
     logLine(alwaysShow, "Done!")
   end
 
-  for slot = 3, 9 do
+  for slot = 7, 15 do
     local bee = bees[slot]
     if bee ~= nil then
       if bee.raw_name == "item.for.beedronege" or bee.raw_name == "item.for.beeprincessge" then
