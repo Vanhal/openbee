@@ -32,7 +32,7 @@ end
 local config = loadFile("bee.config")
 if config == nil then
   config = {
-    ["apiaryType"] = "normal"
+    ["apiaryType"] = "normal",
     ["apiarySide"] = "left",
     ["chestSide"] = "top",
     ["chestDir"] = "up",
