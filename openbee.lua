@@ -32,6 +32,7 @@ end
 local config = loadFile("bee.config")
 if config == nil then
   config = {
+    ["apiaryType"] = "normal"
     ["apiarySide"] = "left",
     ["chestSide"] = "top",
     ["chestDir"] = "up",
@@ -736,7 +737,15 @@ function clearApiary(inv, apiary)
     logLine(alwaysShow, "Done!")
   end
 
-  for slot = 3, 9 do
+  local minSlot = 3
+  local maxSlot = 9
+  
+  if config.apiaryType == "industrial" then
+    minSlot = 7
+    maxSlot = 15
+  end
+
+  for slot = minSlot, maxSlot do
     local bee = bees[slot]
     if bee ~= nil then
       if bee.raw_name == "item.for.beedronege" or bee.raw_name == "item.for.beeprincessge" then
