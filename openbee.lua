@@ -442,7 +442,9 @@ function buildScoring()
     ["Mushroom"] = 2,
     ["Cacti"] = 1,
     ["Exotic Flowers"] = 0,
-    ["Jungle"] = 0
+    ["Jungle"] = 0,
+    ["Snow"] = 0,
+    ["Lily Pads"] = 0
   }
 
   return {
