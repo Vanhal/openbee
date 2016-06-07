@@ -1,4 +1,4 @@
---http://pastebin.com/StLLRBtW
+--http://pastebin.com/2LZqMsL7
 
 if not http then
   print("No access to web")
@@ -10,15 +10,15 @@ local branch = "master"
 local files = {
   {
     name = "openbee-install",
-    url = "https://raw.github.com/Casper-O/openbee/"..branch.."/openbee-install.lua"
+    url = "https://raw.github.com/Vanhal/openbee/"..branch.."/openbee-install.lua"
   },
   {
     name = "openbee",
-    url = "https://raw.github.com/Casper-O/openbee/"..branch.."/openbee.lua"
+    url = "https://raw.github.com/Vanhal/openbee/"..branch.."/openbee.lua"
   },
   {
     name = "matron",
-    url = "https://raw.github.com/Casper-O/openbee/"..branch.."/matron.lua"
+    url = "https://raw.github.com/Vanhal/openbee/"..branch.."/matron.lua"
   }
 }
 
