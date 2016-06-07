@@ -2370,6 +2370,20 @@ function getBeeBreedingData()
      ['result'] = "Skystone",
      ['chance'] = 20
     }
+  breedingTable[298] = {
+     ['allele1'] = "Skystone",
+     ['specialConditions'] = {},
+     ['allele2'] = "Ferrous",
+     ['result'] = "Silicon",
+     ['chance'] = 17
+    }
+  breedingTable[299] = {
+     ['allele1'] = "Silicon",
+     ['specialConditions'] = {},
+     ['allele2'] = "Energetic",
+     ['result'] = "Infinity",
+     ['chance'] = 20
+    }
   return breedingTable
 end
 
