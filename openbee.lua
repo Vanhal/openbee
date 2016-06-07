@@ -1,6 +1,6 @@
 local version = {
   ["major"] = 2,
-  ["minor"] = 3,
+  ["minor"] = 4,
   ["patch"] = 0
 }
 
@@ -11,8 +11,8 @@ local alwaysShow = true
 local logSkip = 5
 
 -- default colors
-local defaultText = colors.yellow
-local defaultBack = colors.brown
+local defaultText = colors.white
+local defaultBack = colors.black
 
 function loadFile(fileName)
   local f = fs.open(fileName, "r")
@@ -2362,6 +2362,13 @@ function getBeeBreedingData()
      ['allele2'] = "Carbon",
      ['result'] = "Endearing",
      ['chance'] = 8
+    }
+  breedingTable[297] = {
+     ['allele1'] = "Windy",
+     ['specialConditions'] = {[1] = "Requires a foundation of Skystone"},
+     ['allele2'] = "Earthen",
+     ['result'] = "Skystone",
+     ['chance'] = 20
     }
   return breedingTable
 end
