@@ -2883,7 +2883,7 @@ function analyzeBee(inv, slot)
   if config.detailedOutput then
 	  log("Analyzing bee ")
 	  log(slot)
-	  log("...")
+	  log("...\n")
   end
   local freeSlot
   if inv.pushItem(config.analyzerDir, slot, 64, 3) > 0 then
